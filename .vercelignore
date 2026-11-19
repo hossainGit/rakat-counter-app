@@ -1,0 +1,7 @@
+test/
+docs/
+package.json
+.superpowers/
+.agents/
+.claude/
+skills-lock.json

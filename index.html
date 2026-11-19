@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="A quiet rakah counter for salah. It counts sujood with your phone's camera, entirely on the device.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Rakah">
+  <title>Rakah Counter</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M16 21h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  </svg>
+
+  <!-- Start -->
+  <section id="start" class="screen">
+    <div class="start-body">
+      <h1>Rakah</h1>
+      <p>Lay the phone flat on the mat, screen up, just past where your forehead goes. Tap Start, then stand up.</p>
+      <button id="start-btn" class="btn primary" type="button">Start</button>
+      <p class="note">The camera stays on your phone. Nothing is uploaded.</p>
+      <p id="wakelock-note" class="note" hidden>Set your screen auto-lock to at least 30 minutes.</p>
+    </div>
+  </section>
+
+  <!-- Camera error -->
+  <section id="error" class="screen" hidden>
+    <div class="start-body">
+      <h1>Camera needed</h1>
+      <p id="error-text">The counter sees your head come down in sujood through the front camera. Allow camera access for this site in your browser's site settings, then try again.</p>
+      <button id="retry-btn" class="btn primary" type="button">Try again</button>
+    </div>
+  </section>
+
+  <!-- Counting -->
+  <main id="count" class="screen" hidden>
+    <button id="settings-btn" class="icon tl" type="button" aria-label="Settings"><svg><use href="#i-sliders"/></svg></button>
+    <button id="fs-btn" class="icon tr" type="button" aria-label="Full screen"><svg><use href="#i-expand"/></svg></button>
+    <button id="fs-close" class="icon tr faint" type="button" aria-label="Exit full screen" hidden><svg><use href="#i-x"/></svg></button>
+    <span id="amber" class="amber" role="img" aria-label="Low light" hidden></span>
+
+    <div class="digit-wrap">
+      <div id="digit" class="digit" aria-live="polite">1</div>
+      <span id="half" class="half" aria-hidden="true" hidden></span>
+    </div>
+
+    <p id="status" class="status" aria-live="polite"></p>
+
+    <button id="reset-btn" class="reset" type="button" aria-label="Hold to reset">
+      <span class="fill" aria-hidden="true"></span>
+      <svg aria-hidden="true"><use href="#i-reset"/></svg><span>Hold to reset</span>
+    </button>
+
+    <div id="testpanel" class="testpanel" hidden>
+      <pre id="readout"></pre>
+      <div class="test-actions">
+        <button id="rec-btn" class="btn small" type="button">Record</button>
+        <button id="csv-btn" class="btn small" type="button" disabled>Export CSV</button>
+      </div>
+    </div>
+
+    <div id="hint" class="toast" role="status" hidden>
+      <p>For full screen on iPhone: tap Share, then Add to Home Screen.</p>
+      <button id="hint-ok" class="btn small" type="button">OK</button>
+    </div>
+
+    <div id="dark" class="overlay" role="alertdialog" aria-labelledby="dark-title" hidden>
+      <div class="sheet">
+        <h2 id="dark-title">Too dark to count reliably</h2>
+        <p>Turn on a light, then recalibrate.</p>
+        <div class="row">
+          <button id="dark-recal" class="btn primary" type="button">Recalibrate</button>
+          <button id="dark-anyway" class="btn" type="button">Count anyway</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Settings -->
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form method="dialog" class="settings-form">
+      <header class="settings-head">
+        <h2 id="settings-title">Display</h2>
+        <button class="btn small" value="close" type="submit">Done</button>
+      </header>
+      <div class="preview" aria-hidden="true"><span id="preview-digit" class="digit">3</span></div>
+
+      <fieldset>
+        <legend>Font</legend>
+        <div id="font-list" class="choices"></div>
+      </fieldset>
+
+      <label class="field"><span class="field-head">Size <output id="size-out"></output></span>
+        <input id="size" type="range" min="20" max="90" step="1">
+      </label>
+
+      <fieldset>
+        <legend>Colour</legend>
+        <div id="swatches" class="choices swatches"></div>
+        <label class="field inline">Custom <input id="color" type="color"></label>
+      </fieldset>
+
+      <label class="field"><span class="field-head">Brightness <output id="opacity-out"></output></span>
+        <input id="opacity" type="range" min="10" max="100" step="5">
+      </label>
+
+      <label class="field inline check"><input id="testmode" type="checkbox"><span>Test mode<br><span class="note">Shows the detection signal</span></span></label>
+    </form>
+  </dialog>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
